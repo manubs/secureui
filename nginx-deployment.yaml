@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: ./kompose convert -f docker-compose.yaml
+    kompose.version: 1.26.1 (a9d05d509)
+  labels:
+    io.kompose.service: nginx
+  name: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: nginx
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: ./kompose convert -f docker-compose.yaml
+        kompose.version: 1.26.1 (a9d05d509)
+      labels:
+        io.kompose.service: nginx
+    spec:
+      containers:
+        #- image: manubs/nginx3
+        - image: manubs/nginx-keycloak
+          name: nginx
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: nginx.conf
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-conf
+          items:
+            - key: nginx.conf
+              path: nginx.conf
+      # - name: nginx-conf
+      #   configMap:
+      #     name: nginx-conf
+      #     items:
+      #       - key: nginx.conf
+      #         path: nginx.conf

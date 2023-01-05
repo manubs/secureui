@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+  labels:
+    app: myapplication
+data:
+  nginx.conf: |  
+    server {
+          listen   80;
+          root     /opt/nginx/html;
+          resolver 127.0.0.11  valid=1s    ipv6=off;
+          
+          access_by_lua '
+            local opts = {
+              redirect_uri_path = "/redirect_uri",
+              accept_none_alg = true,
+              discovery = "http://34.69.107.73/realms/secure/.well-known/openid-configuration",
+              client_id = "secure",
+              client_secret = "17wt1Vfg2xjGcT3frows45tG9y9PF2cT",
+              redirect_uri_scheme = "http",
+              logout_path = "/logout",
+              redirect_after_logout_uri = "http://34.69.107.73/myrealm/secure/protocol/openid-connect/logout",
+              redirect_after_logout_with_id_token_hint = false,
+              session_contents = {id_token=true}
+            }
+            -- call introspect for OAuth 2.0 Bearer Access Token validation
+            local res, err = require("resty.openidc").authenticate(opts)
+            if err then
+              ngx.status = 403
+              ngx.say(err)
+              ngx.exit(ngx.HTTP_FORBIDDEN)
+            end
+          ';
+    
+          # I disabled caching so the browser won't cache the site.
+          expires           0;
+          add_header        Cache-Control private;    
+    
+          location / {
+              # proxy_pass      http://nginx:80;
+              # proxy_set_header    X-Forwarded-For         $remote_addr;
+          }    
+          
+          # redirect server error pages to the static page /40x.html
+          #
+          error_page 404 /404.html;
+              location = /40x.html {
+          }
+    
+          # redirect server error pages to the static page /50x.html
+          #
+          error_page 500 502 503 504 /50x.html;
+              location = /50x.html {
+                root /usr/share/nginx/html;
+          }
+    }
